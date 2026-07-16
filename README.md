@@ -103,6 +103,20 @@ Z は `transform` ではなく `TrackedObject.Position.z`（実測値）で判�
 - 高さゲートは XY 平面判定（`ComputeDistanceTo`）に対する**追加**の制約。XY 距離自体にも Y は
   含まれるため、既定は off。純粋に水平距離だけで判定したい場合は別途相談。
 
+## 記録機能（PositionRecorder）
+
+finger_from_side の `RecordPosition` 相当。追跡物体の位置・速度・トラッキング状態を CSV に記録する。
+`Build Game Scene` で生成されるシーンには `Recorder` オブジェクトとして含まれる。
+
+- 出力先: `Assets/CSVFiles/subjNN_<condition>_<timestamp>.csv`（git 管理外）
+- 列: `Time, pos.x, pos.y, pos.z, vel.x, vel.y, isTracking, event`
+- 位置は `TrackedObject.Position`（実測 Z を保持）。`ReferenceObject` を設定すると相対位置。
+- `Detector` を設定すると、ヒット発火が `event` 列に記録される（`HIT lead=..ms vt=.. vrel=.. margin=..`）。
+- 記録開始/停止: Play 中に Inspector の **Start/Stop Recording** ボタン、または `RecordOnPlay` で自動開始。
+
+補足: Motive 側のテイク録画をトリガしたい場合は、`OptitrackStreamingClient` の
+`RecordOnPlay` / `StartRecording()` / `StopRecording()`（NatNet リモートコマンド）を使う。
+
 ## パラメータ既定値
 
 | パラメータ | 場所 | 既定値 | 単位 |

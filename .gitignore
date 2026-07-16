@@ -41,6 +41,10 @@ sysinfo.txt
 *.app
 crashlytics-build.properties
 
+# 記録した実験データ（CSV出力先）
+/[Aa]ssets/CSVFiles/
+/[Aa]ssets/CSVFiles.meta
+
 # OS files
 .DS_Store
 Thumbs.db

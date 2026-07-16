@@ -7,6 +7,7 @@ using AerialFlickGame.TrackedObjects;
 using AerialFlickGame.Circle;
 using AerialFlickGame.Game;
 using AerialFlickGame.DebugTools;
+using AerialFlickGame.Recording;
 
 namespace AerialFlickGame.EditorTools
 {
@@ -106,6 +107,12 @@ namespace AerialFlickGame.EditorTools
             spawner.Restitution = 1.0f; // 1=よく跳ねる。論文相当は 0
             spawner.HorizontalBounceOnly = false; // true=水平のみ(論文1D) / false=角度がつく2D
             spawner.CircleMaterial = circleMat;
+
+            // ---- Recorder ----
+            var recorderGo = new GameObject("Recorder");
+            var recorder = recorderGo.AddComponent<PositionRecorder>();
+            recorder.TrackedObject = cylinder;
+            recorder.Detector = detector;
 
             // ---- UI ----
             BuildUI(gameManager);
