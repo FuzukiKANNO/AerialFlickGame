@@ -62,6 +62,22 @@ namespace AerialFlickGame.DebugTools
                             box.BoxHeight + Detector.CollisionMargin * 2f, 0f));
                     }
                 }
+                else if (TrackedObject is RingTracked ring)
+                {
+                    // 重心 → 円中心（オフセット）を線で、円は実際の平面（既定 ZY）で描く
+                    Vector3 c = ring.CenterWorld;
+                    ring.GetPlaneBasis(out Vector3 ru, out Vector3 rv);
+                    Gizmos.color = Color.gray;
+                    Gizmos.DrawLine(p, c);
+                    Gizmos.DrawSphere(p, 0.003f); // 重心
+                    Gizmos.color = Color.cyan;
+                    DrawPlaneCircle(c, ring.Radius, ru, rv);
+                    if (Detector != null)
+                    {
+                        Gizmos.color = new Color(0f, 1f, 1f, 0.25f);
+                        DrawPlaneCircle(c, ring.Radius + Detector.CollisionMargin, ru, rv);
+                    }
+                }
 
                 // 予測軌跡（速度方向の矢印 + 0.1/0.2/0.3s の点）
                 Gizmos.color = Color.green;
@@ -153,6 +169,18 @@ namespace AerialFlickGame.DebugTools
                 float ang = (i / (float)segments) * Mathf.PI * 2f;
                 Vector3 next = center + new Vector3(Mathf.Cos(ang) * radius, Mathf.Sin(ang) * radius, 0f);
                 next.z = z;
+                Gizmos.DrawLine(prev, next);
+                prev = next;
+            }
+        }
+
+        private static void DrawPlaneCircle(Vector3 center, float radius, Vector3 u, Vector3 v, int segments = 40)
+        {
+            Vector3 prev = center + u * radius;
+            for (int i = 1; i <= segments; i++)
+            {
+                float a = (i / (float)segments) * Mathf.PI * 2f;
+                Vector3 next = center + (Mathf.Cos(a) * u + Mathf.Sin(a) * v) * radius;
                 Gizmos.DrawLine(prev, next);
                 prev = next;
             }

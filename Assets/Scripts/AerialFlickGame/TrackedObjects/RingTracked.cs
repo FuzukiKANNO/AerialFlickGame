@@ -1,0 +1,161 @@
+using UnityEngine;
+
+namespace AerialFlickGame.TrackedObjects
+{
+    /// <summary>
+    /// トラッキング重心から一定距離オフセットした位置にある「円（リング）」で弾く追跡形状。
+    /// 実物のアイテム: 重心の真下に直径12cmの円、円の端から重心まで(y)は1cm。
+    /// → 円中心は重心から (端〜重心 + 半径) だけオフセット方向に離れる。
+    /// XY 平面上では円 vs 円として解析的に扱う（CylinderTracked と同じ数式、中心だけオフセット）。
+    /// </summary>
+    public class RingTracked : TrackedObjectBase
+    {
+        [Header("形状（キャリブレ用）")]
+        [Tooltip("円の直径 [m]")]
+        public float Diameter = 0.12f;
+
+        [Tooltip("円の端から重心までの距離 [m]（オフセット方向）")]
+        public float EdgeToCentroid = 0.01f;
+
+        [Tooltip("重心から円中心への向き（ローカル）。真下=Down")]
+        public Vector3 OffsetDirectionLocal = Vector3.down;
+
+        [Tooltip("追跡姿勢でオフセット方向・平面を回す（アイテムを傾けると円も傾く）")]
+        public bool UseTrackedRotation = true;
+
+        [Tooltip("円が乗る平面の法線（ローカル）。X=(1,0,0) なら ZY 平面")]
+        public Vector3 PlaneNormalLocal = Vector3.right;
+
+        [Tooltip("予測（Predictive）時の数値ステップ [s]")]
+        public float StepSize = 0.002f;
+
+        /// <summary>円の半径 [m]。</summary>
+        public float Radius => Diameter * 0.5f;
+
+        /// <summary>重心から円中心までの距離 [m]（端〜重心 + 半径）。</summary>
+        public float CenterOffsetDistance => EdgeToCentroid + Radius;
+
+        /// <summary>円中心のワールド座標。</summary>
+        public Vector3 CenterWorld
+        {
+            get
+            {
+                Vector3 dir = OffsetDirectionLocal.sqrMagnitude > 1e-9f
+                    ? OffsetDirectionLocal.normalized
+                    : Vector3.down;
+                if (UseTrackedRotation) dir = Orientation * dir;
+                return Position + dir * CenterOffsetDistance;
+            }
+        }
+
+        /// <summary>円中心の XY。</summary>
+        public Vector2 CenterXY => new Vector2(CenterWorld.x, CenterWorld.y);
+
+        public override Vector2 ShapeCenterXY => CenterXY;
+
+        /// <summary>円盤（面）のワールド法線。</summary>
+        public Vector3 PlaneNormalWorld
+        {
+            get
+            {
+                Vector3 n = PlaneNormalLocal.sqrMagnitude > 1e-9f
+                    ? PlaneNormalLocal.normalized : Vector3.right;
+                return UseTrackedRotation ? (Orientation * n) : n;
+            }
+        }
+
+        /// <summary>円が乗る平面のワールド基底ベクトル（u, v）。円上の点 = 中心 + (cosθ·u + sinθ·v)·半径。</summary>
+        public void GetPlaneBasis(out Vector3 u, out Vector3 v)
+        {
+            Vector3 n = PlaneNormalLocal.sqrMagnitude > 1e-9f
+                ? PlaneNormalLocal.normalized : Vector3.right;
+            Vector3 helper = Mathf.Abs(Vector3.Dot(n, Vector3.up)) > 0.99f ? Vector3.right : Vector3.up;
+            Vector3 uLocal = Vector3.Cross(helper, n).normalized;
+            Vector3 vLocal = Vector3.Cross(n, uLocal);
+            if (UseTrackedRotation)
+            {
+                u = Orientation * uLocal;
+                v = Orientation * vLocal;
+            }
+            else
+            {
+                u = uLocal;
+                v = vLocal;
+            }
+        }
+
+        /// <summary>
+        /// 点（飛来円の中心。z は結像面 PlaneZ）から、指定中心の円盤（面）までの距離。
+        /// 面内に収まっていれば面までの垂直距離、外れていれば縁までの距離。
+        /// </summary>
+        private float DistancePointToDisc(Vector3 point, Vector3 discCenter)
+        {
+            Vector3 n = PlaneNormalWorld;
+            Vector3 rel = point - discCenter;
+            float dPerp = Vector3.Dot(rel, n);              // 面への垂直距離（符号付き）
+            Vector3 inPlane = rel - dPerp * n;              // 面内成分
+            float dIn = inPlane.magnitude;
+            if (dIn <= Radius) return Mathf.Abs(dPerp);     // 面の内側 → 垂直距離
+            float e = dIn - Radius;                          // 縁からのはみ出し
+            return Mathf.Sqrt(dPerp * dPerp + e * e);
+        }
+
+        public override float ComputeDistanceTo(Vector2 circleCenter)
+        {
+            // 飛来円は結像面(z=PlaneZ)上にある点として扱う
+            Vector3 ball = new Vector3(circleCenter.x, circleCenter.y, PlaneZ);
+            return DistancePointToDisc(ball, CenterWorld);
+        }
+
+        /// <summary>
+        /// 円盤の最近接点から飛来円中心へ向かう法線（XY）。面の内側なら面法線、縁なら縁→円の向き。
+        /// ＝「円と面が衝突した箇所」基準の跳ね返り方向。
+        /// </summary>
+        public override Vector2 CollisionNormal(Vector2 ballXY)
+        {
+            Vector3 P = new Vector3(ballXY.x, ballXY.y, PlaneZ);
+            Vector3 c = CenterWorld;
+            Vector3 N = PlaneNormalWorld;
+            Vector3 rel = P - c;
+            float dPerp = Vector3.Dot(rel, N);
+            Vector3 inPlane = rel - dPerp * N;
+            float dIn = inPlane.magnitude;
+
+            Vector3 closest = dIn <= Radius
+                ? c + inPlane                       // 面の内側 → 垂直投影点
+                : c + inPlane.normalized * Radius;  // 縁
+
+            Vector3 dir = P - closest;              // 接触点 → 円
+            Vector2 n = new Vector2(dir.x, dir.y);
+            if (n.sqrMagnitude < 1e-10f)
+            {
+                n = new Vector2(N.x, N.y);          // 面上に一致 → 面法線
+                if (n.sqrMagnitude < 1e-10f) n = ballXY - CenterXY;
+            }
+            return n.sqrMagnitude < 1e-10f ? Vector2.left : n.normalized;
+        }
+
+        public override float? FindTimeToCollision(
+            Vector2 circlePosNow,
+            Vector2 circleVelocity,
+            float collisionThreshold,
+            float maxLookAheadSeconds)
+        {
+            // 円盤 vs 移動する点は解析が煩雑なので数値ステッピングで解く
+            float step = Mathf.Max(1e-4f, StepSize);
+            Vector3 c0 = CenterWorld;
+            Vector3 vt = new Vector3(Velocity.x, Velocity.y, 0f);      // 円盤中心の速度（XY）
+            Vector3 vc = new Vector3(circleVelocity.x, circleVelocity.y, 0f);
+            Vector3 q0 = new Vector3(circlePosNow.x, circlePosNow.y, PlaneZ);
+
+            for (float t = 0f; t <= maxLookAheadSeconds; t += step)
+            {
+                Vector3 ct = c0 + vt * t;
+                Vector3 qt = q0 + vc * t;
+                if (DistancePointToDisc(qt, ct) <= collisionThreshold)
+                    return t;
+            }
+            return null;
+        }
+    }
+}

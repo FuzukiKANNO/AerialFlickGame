@@ -212,7 +212,7 @@ namespace AerialFlickGame.Core
             if (tCol == null) return; // 予測範囲内に衝突なし
 
             float t = tCol.Value;
-            Vector2 trackedFuture = TrackedObject.PositionXY + TrackedObject.Velocity * t;
+            Vector2 trackedFuture = TrackedObject.ShapeCenterXY + TrackedObject.Velocity * t;
             Vector2 circleFuture = qNow + vCircle * t;
             Vector2 contact = (trackedFuture + circleFuture) * 0.5f;
 

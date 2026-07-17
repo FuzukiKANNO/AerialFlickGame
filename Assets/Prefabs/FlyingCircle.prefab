@@ -106,4 +106,6 @@ MonoBehaviour:
   Speed: 0.3
   Radius: 0.01
   RightBoundX: 0.3
+  Restitution: 1
+  HorizontalBounceOnly: 0
   HitLifetime: 0.6

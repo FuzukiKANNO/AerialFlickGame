@@ -1,6 +1,7 @@
 using UnityEngine;
 using AerialFlickGame.Core;
 using AerialFlickGame.Game;
+using AerialFlickGame.Presentation;
 
 namespace AerialFlickGame.Circle
 {
@@ -38,6 +39,13 @@ namespace AerialFlickGame.Circle
         [Tooltip("円に適用するマテリアル（任意）")]
         public Material CircleMaterial;
 
+        [Header("演出")]
+        [Tooltip("設定すると、ペンギンが targetY までジャンプして投げた瞬間に球を発生させる")]
+        public PenguinThrower Thrower;
+
+        /// <summary>円をスポーンした瞬間に発火（ペンギンの投げモーション等の同期用）。</summary>
+        public event System.Action<Vector3> OnSpawn;
+
         private float _timer;
 
         private void Awake()
@@ -61,7 +69,17 @@ namespace AerialFlickGame.Circle
         private void Spawn()
         {
             float y = Random.Range(-YRange, YRange);
-            Vector3 pos = new Vector3(SpawnX, y, PlaneZ);
+
+            // ペンギンがいれば、頂点(targetY)で投げたリリース位置から球を発生させる
+            if (Thrower != null && Thrower.isActiveAndEnabled)
+                Thrower.JumpAndThrow(y, SpawnCircleAt);
+            else
+                SpawnCircleAt(new Vector3(SpawnX, y, PlaneZ));
+        }
+
+        private void SpawnCircleAt(Vector3 pos)
+        {
+            pos.z = PlaneZ; // 判定面に固定（発生源の Z によらず）
 
             GameObject obj;
             if (CirclePrefab != null)
@@ -87,6 +105,8 @@ namespace AerialFlickGame.Circle
             FlyingCircle ctrl = obj.GetComponent<FlyingCircle>();
             if (ctrl == null) ctrl = obj.AddComponent<FlyingCircle>();
             ctrl.Initialize(HitDetector, CircleSpeed, CircleRadius, RightBoundX, Restitution, HorizontalBounceOnly);
+
+            OnSpawn?.Invoke(pos);
         }
     }
 }

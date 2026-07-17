@@ -76,6 +76,15 @@ namespace AerialFlickGame.EditorTools
             box.InputCamera = cam;
             box.enabled = false; // 既定は Cylinder。Box を使うときは入れ替える。
 
+            // リング型アイテム（重心の下に円）。使うときは enabled にして detector.TrackedObject を差し替え
+            var ring = trackedGo.AddComponent<RingTracked>();
+            ring.Diameter = 0.12f;
+            ring.EdgeToCentroid = 0.01f;
+            ring.VelocityFrames = 5;
+            ring.UseMouseWhenUntracked = true;
+            ring.InputCamera = cam;
+            ring.enabled = false;
+
             detector.TrackedObject = cylinder;
 
             var gizmo = trackedGo.AddComponent<PredictionGizmo>();

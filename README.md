@@ -40,6 +40,27 @@ Unity プロジェクト。物理的に接触する `DetectionLeadTime` 秒前�
   `Manager > PredictiveHitDetector > TrackedObject` の参照を `BoxTracked` に差し替える
   （`PredictionGizmo > TrackedObject` も同様）。
 
+### リング型アイテム（RingTracked）
+
+重心から離れた位置に円がある実物アイテム用。重心の下に直径 12cm の円があり、円の端〜重心が 1cm、
+という形状を想定（円中心は重心から `EdgeToCentroid + 半径` 離れる）。円は **ZY 平面の円盤（面）**として扱い、
+**飛来円（結像面 z=PlaneZ 上の点＋半径）vs 面**で判定する（面を横から突く形）。
+
+キャリブレ用の変数（すべて Inspector）:
+| 変数 | 既定 | 意味 |
+|---|---|---|
+| `Diameter` | 0.12 m | 円の直径 |
+| `EdgeToCentroid` | 0.01 m | 円の端から重心までの距離 |
+| `OffsetDirectionLocal` | Down | 重心から円中心への向き（ローカル） |
+| `PlaneNormalLocal` | (1,0,0) | 円が乗る面の法線（X＝ZY 平面） |
+| `UseTrackedRotation` | true | アイテム姿勢でオフセット方向・面を回す |
+| `StepSize` | 0.002 s | Predictive 時の数値ステップ |
+
+円中心 = 重心 + 向き ×(`EdgeToCentroid` + 直径/2)。既定では重心の 7cm 下。
+判定は「点（飛来円中心）から円盤までの距離 ≤ 円半径 + `CollisionMargin`」。見た目(`RingVisual`)・Gizmo も同じ ZY 面で描く。
+使うには `TrackedObject` で `RingTracked` を有効化し、`CylinderTracked` を無効化、
+`PredictiveHitDetector.TrackedObject` と `PredictionGizmo.TrackedObject` を `RingTracked` に差し替える。
+
 ## スクリプト構成
 
 ```
@@ -116,6 +137,21 @@ finger_from_side の `RecordPosition` 相当。追跡物体の位置・速度・
 
 補足: Motive 側のテイク録画をトリガしたい場合は、`OptitrackStreamingClient` の
 `RecordOnPlay` / `StartRecording()` / `StopRecording()`（NatNet リモートコマンド）を使う。
+
+## ペンギン（ジャンプして投げる演出）
+
+左側の地面に置いたペンギン（Hosh「Stylized Penguin」）が、**球の高さ(targetY)までジャンプして頂点で投げ**、
+球はそのリリース位置から発生する。着地後は元に戻る。
+
+- メニュー **`AerialFlickGame > Add Penguin Thrower (left)`** で現在のシーンに配置・配線（再生成なし）。
+  ペンギンは球の流れ(±YRange)より下（地面）に置かれ、`CircleSpawner.Thrower` に自動接続される。
+- スポナーは各スポーンで targetY を決め、`PenguinThrower.JumpAndThrow(targetY, ...)` を呼ぶ。
+  ペンギンが上昇 → 頂点でリリース（このとき球を発生）→ 下降。Jump アニメ（Animator トリガ `Jump`）も併用。
+- 調整項目:
+  - 位置(Y=地面) / スケール / 向き(Y回転、逆なら ±90) … Inspector で見た目に合わせる
+  - `RiseTime` / `HangTime` / `FallTime` … ジャンプの緩急
+  - `ForwardLunge` / `LaunchForwardX` … 前方への踏み込み・球のリリース位置(+X)
+- アセットに Throw アニメが無いため投げ自体は手続き移動＋Jump アニメで表現。Animator の Apply Root Motion は自動で無効化。
 
 ## パラメータ既定値
 

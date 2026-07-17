@@ -112,23 +112,17 @@ namespace AerialFlickGame.Circle
                 return -circleVel; // フォールバック: 逆向き同速
             }
 
-            Vector2 fingerPos = _detector.TrackedObject.PositionXY;
             Vector2 fingerVel = _detector.TrackedObject.Velocity;
 
-            // 衝突法線 n
-            Vector2 n;
+            // 衝突法線 n＝「円と形状が接触した箇所」基準（形状ごとに算出。円柱=中心方向、面=接触点方向）
+            Vector2 n = _detector.TrackedObject.CollisionNormal(PositionXY);
+
             if (HorizontalBounceOnly)
             {
-                // 水平方向に固定（指→円 の左右だけを見る）
-                float sx = PositionXY.x - fingerPos.x;
-                n = new Vector2(sx >= 0f ? 1f : -1f, 0f);
-            }
-            else
-            {
-                // 指中心 → 円中心（2D の接触法線）
-                n = PositionXY - fingerPos;
-                if (n.sqrMagnitude < 1e-8f) n = Vector2.left; // 中心一致時の保険
-                else n.Normalize();
+                // 水平方向に固定
+                n = new Vector2(n.x, 0f);
+                if (n.sqrMagnitude < 1e-8f) n = Vector2.left;
+                n.Normalize();
             }
 
             float e = Restitution;

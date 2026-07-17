@@ -39,8 +39,24 @@ namespace AerialFlickGame.TrackedObjects
         public Vector2 Velocity { get; private set; }
         public bool IsTracking { get; private set; }
 
+        /// <summary>追跡剛体の姿勢（トラッキング時のみ有効。マウス時は identity）。</summary>
+        public Quaternion Orientation { get; private set; } = Quaternion.identity;
+
         /// <summary>現在位置の XY 成分。</summary>
         public Vector2 PositionXY => new Vector2(Position.x, Position.y);
+
+        /// <summary>衝突形状の中心 XY（既定は重心。オフセットのある形状はオーバーライド）。</summary>
+        public virtual Vector2 ShapeCenterXY => PositionXY;
+
+        /// <summary>
+        /// 飛来円が ballXY にあるときの衝突法線（XY, 単位ベクトル）。跳ね返り方向に使う。
+        /// 既定は形状中心→円の向き。面など接触点で決めたい形状はオーバーライドする。
+        /// </summary>
+        public virtual Vector2 CollisionNormal(Vector2 ballXY)
+        {
+            Vector2 d = ballXY - ShapeCenterXY;
+            return d.sqrMagnitude < 1e-10f ? Vector2.left : d.normalized;
+        }
 
         private VelocityEstimator _estimator;
 
@@ -62,6 +78,7 @@ namespace AerialFlickGame.TrackedObjects
                 if (rbState != null && rbState.Pose != null)
                 {
                     newPos = rbState.Pose.Position;
+                    Orientation = rbState.Pose.Orientation;
                     tracked = true;
                 }
             }
@@ -73,6 +90,7 @@ namespace AerialFlickGame.TrackedObjects
                 {
                     newPos = mousePos;
                 }
+                Orientation = Quaternion.identity;
             }
 
             IsTracking = tracked;
