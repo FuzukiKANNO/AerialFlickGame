@@ -108,30 +108,16 @@ namespace AerialFlickGame.TrackedObjects
         }
 
         /// <summary>
-        /// 円盤の最近接点から飛来円中心へ向かう法線（XY）。面の内側なら面法線、縁なら縁→円の向き。
-        /// ＝「円と面が衝突した箇所」基準の跳ね返り方向。
+        /// 常に「面の法線」で弾く（縁での斜め弾きはしない）。法線はボールがいる側へ向ける。
         /// </summary>
         public override Vector2 CollisionNormal(Vector2 ballXY)
         {
             Vector3 P = new Vector3(ballXY.x, ballXY.y, PlaneZ);
-            Vector3 c = CenterWorld;
             Vector3 N = PlaneNormalWorld;
-            Vector3 rel = P - c;
-            float dPerp = Vector3.Dot(rel, N);
-            Vector3 inPlane = rel - dPerp * N;
-            float dIn = inPlane.magnitude;
-
-            Vector3 closest = dIn <= Radius
-                ? c + inPlane                       // 面の内側 → 垂直投影点
-                : c + inPlane.normalized * Radius;  // 縁
-
-            Vector3 dir = P - closest;              // 接触点 → 円
-            Vector2 n = new Vector2(dir.x, dir.y);
-            if (n.sqrMagnitude < 1e-10f)
-            {
-                n = new Vector2(N.x, N.y);          // 面上に一致 → 面法線
-                if (n.sqrMagnitude < 1e-10f) n = ballXY - CenterXY;
-            }
+            float dPerp = Vector3.Dot(P - CenterWorld, N);
+            Vector3 nWorld = dPerp >= 0f ? N : -N;   // 面法線をボール側へ
+            Vector2 n = new Vector2(nWorld.x, nWorld.y);
+            if (n.sqrMagnitude < 1e-10f) n = ballXY - CenterXY; // 面法線に XY 成分が無い場合の保険
             return n.sqrMagnitude < 1e-10f ? Vector2.left : n.normalized;
         }
 
