@@ -17,6 +17,9 @@ namespace AerialFlickGame.TrackedObjects
         [Tooltip("円の端から重心までの距離 [m]（オフセット方向）")]
         public float EdgeToCentroid = 0.01f;
 
+        [Tooltip("面から +法線(右/+X)側への厚み [m]。ラケットの実厚み（重心の右に1cmなら 0.01）。厚くするとすり抜けにくい")]
+        public float Thickness = 0.01f;
+
         [Tooltip("重心から円中心への向き（ローカル）。真下=Down")]
         public Vector3 OffsetDirectionLocal = Vector3.down;
 
@@ -85,8 +88,8 @@ namespace AerialFlickGame.TrackedObjects
         }
 
         /// <summary>
-        /// 点（飛来円の中心。z は結像面 PlaneZ）から、指定中心の円盤（面）までの距離。
-        /// 面内に収まっていれば面までの垂直距離、外れていれば縁までの距離。
+        /// 点（飛来円の中心。z は結像面 PlaneZ）から、指定中心の円盤（面・厚み Thickness）までの距離。
+        /// 厚みを持つ短い円柱として扱い、内側なら 0 を返す。
         /// </summary>
         private float DistancePointToDisc(Vector3 point, Vector3 discCenter)
         {
@@ -95,9 +98,11 @@ namespace AerialFlickGame.TrackedObjects
             float dPerp = Vector3.Dot(rel, n);              // 面への垂直距離（符号付き）
             Vector3 inPlane = rel - dPerp * n;              // 面内成分
             float dIn = inPlane.magnitude;
-            if (dIn <= Radius) return Mathf.Abs(dPerp);     // 面の内側 → 垂直距離
-            float e = dIn - Radius;                          // 縁からのはみ出し
-            return Mathf.Sqrt(dPerp * dPerp + e * e);
+            // 面(dPerp=0)から +法線側へ Thickness だけ伸びる片側の板 [0, Thickness] までの距離
+            float t = Mathf.Max(0f, Thickness);
+            float axial = Mathf.Max(0f, Mathf.Max(-dPerp, dPerp - t));
+            float radial = Mathf.Max(0f, dIn - Radius);
+            return Mathf.Sqrt(axial * axial + radial * radial);
         }
 
         public override float ComputeDistanceTo(Vector2 circleCenter)

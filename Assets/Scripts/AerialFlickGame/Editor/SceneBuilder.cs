@@ -8,6 +8,7 @@ using AerialFlickGame.Circle;
 using AerialFlickGame.Game;
 using AerialFlickGame.DebugTools;
 using AerialFlickGame.Recording;
+using AerialFlickGame.Config;
 
 namespace AerialFlickGame.EditorTools
 {
@@ -31,12 +32,15 @@ namespace AerialFlickGame.EditorTools
             var cam = camGo.AddComponent<Camera>();
             camGo.AddComponent<AudioListener>();
             cam.orthographic = true;
-            cam.orthographicSize = 0.30f;                 // 表示縦半幅 0.3 m
+            cam.orthographicSize = 0.10f;                 // 表示縦半幅 0.1 m（固定）
             cam.transform.position = new Vector3(0f, 0f, -1f);
             cam.transform.rotation = Quaternion.identity; // +Z を向く → XY 平面を正視
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.08f, 0.09f, 0.12f);
             cam.nearClipPlane = 0.01f;
+            var orthoLock = camGo.AddComponent<CameraOrthoLock>(); // ビルド/実行時も 0.1 固定
+            orthoLock.Size = 0.10f;
+            orthoLock.TargetCamera = cam;
 
             // ---- ライト ----
             var lightGo = new GameObject("Directional Light");
@@ -98,6 +102,23 @@ namespace AerialFlickGame.EditorTools
             visual.transform.SetParent(trackedGo.transform, false);
             visual.transform.localScale = Vector3.one * (cylinder.CylinderRadius * 2f);
             visual.GetComponent<Renderer>().sharedMaterial = trackedMat;
+
+            // ---- OptiTrack Client（ビルドに含める）----
+            var clientPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/OptiTrack/Prefabs/Client - OptiTrack.prefab");
+            if (clientPrefab != null)
+            {
+                var clientGo = (GameObject)PrefabUtility.InstantiatePrefab(clientPrefab);
+                var client = clientGo.GetComponentInChildren<OptitrackStreamingClient>();
+                cylinder.StreamingClient = client;
+                box.StreamingClient = client;
+                ring.StreamingClient = client;
+            }
+
+            // ---- 実行時設定（fps 固定）----
+            var runtimeCfg = new GameObject("RuntimeConfig");
+            var fps = runtimeCfg.AddComponent<FrameRateController>();
+            fps.TargetFps = 60; // Inspector で変更可
 
             // ---- 飛来円プレハブ ----
             GameObject circlePrefab = CreateCirclePrefab(circleMat);

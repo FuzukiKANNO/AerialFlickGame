@@ -22,18 +22,21 @@ namespace AerialFlickGame.Core
         // 論文（菅野ら, VRSJ2026）に忠実なモデル。追跡物体（指）だけを LeadTime 分
         // 先読みし、円は実位置で判定する。有効当たり判定距離 = LeadTime×指速度 + margin。
         // 指が静止なら実接触で発火し、円の速度では早出ししない。既定。
+        [InspectorName("CompensatedContact (論文モデル・推奨)")]
         CompensatedContact,
         // 相対的な衝突時刻を予測し、その LeadTime 前に発火する（円の速度でも早出しする）。
-        // 論文モデルとは異なる挙動。比較・検証用に残している。
+        // 反応時間モデルの根拠から外れ、静止時も円速度で早出しするため【非実験向け／ゲーム演出用】。
+        [InspectorName("Predictive (非実験向け/演出用)")]
         Predictive,
         // 予測も補償もせず、実際に接触した瞬間（今の実距離）で発火する。
+        [InspectorName("PhysicalContact (実接触)")]
         PhysicalContact,
     }
 
     public class PredictiveHitDetector : MonoBehaviour
     {
         [Header("検出方式")]
-        [Tooltip("CompensatedContact=論文モデル(指だけ先読み) / Predictive=相対衝突時刻の先出し / PhysicalContact=実接触")]
+        [Tooltip("CompensatedContact=論文モデル(推奨) / Predictive=相対衝突時刻の先出し【非実験向け/演出用】 / PhysicalContact=実接触")]
         public DetectionMode Mode = DetectionMode.CompensatedContact;
 
         [Header("予測パラメータ")]
