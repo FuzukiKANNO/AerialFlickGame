@@ -56,6 +56,9 @@ namespace AerialFlickGame.TrackedObjects
 
         public override Vector2 ShapeCenterXY => CenterXY;
 
+        // 速度は接触部＝リング中心で推定する（論文の“指中心の速度”に相当）
+        protected override Vector3 VelocitySamplePoint => CenterWorld;
+
         /// <summary>円盤（面）のワールド法線。</summary>
         public Vector3 PlaneNormalWorld
         {

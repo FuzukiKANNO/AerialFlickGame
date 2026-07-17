@@ -57,6 +57,12 @@ namespace AerialFlickGame.TrackedObjects
         public virtual Vector2 ShapeCenterXY => PositionXY;
 
         /// <summary>
+        /// 速度推定に使うサンプル点（既定は重心）。オフセット形状は「実際に接触する部分」を返す
+        /// ことで、論文の“指中心の速度”に相当する量を推定できる。
+        /// </summary>
+        protected virtual Vector3 VelocitySamplePoint => Position;
+
+        /// <summary>
         /// 飛来円が ballXY にあるときの衝突法線（XY, 単位ベクトル）。跳ね返り方向に使う。
         /// 既定は形状中心→円の向き。面など接触点で決めたい形状はオーバーライドする。
         /// </summary>
@@ -143,8 +149,8 @@ namespace AerialFlickGame.TrackedObjects
             Orientation = FilterOrientation(rawRot, tracked);
             transform.position = new Vector3(newPos.x, newPos.y, PlaneZ);
 
-            // 3. 速度推定
-            _estimator.AddSample(Position, Time.time);
+            // 3. 速度推定（接触部の速度を推定：既定は重心、リングはリング中心）
+            _estimator.AddSample(VelocitySamplePoint, Time.time);
             Velocity = _estimator.EstimateVelocity();
         }
 

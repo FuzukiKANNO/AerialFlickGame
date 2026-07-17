@@ -36,7 +36,7 @@ namespace AerialFlickGame.EditorTools
             cam.transform.position = new Vector3(0f, 0f, -1f);
             cam.transform.rotation = Quaternion.identity; // +Z を向く → XY 平面を正視
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0.08f, 0.09f, 0.12f);
+            cam.backgroundColor = Color.black; // 空中像用に純黒（縁より明るくならないよう）
             cam.nearClipPlane = 0.01f;
             var orthoLock = camGo.AddComponent<CameraOrthoLock>(); // ビルド/実行時も 0.1 固定
             orthoLock.Size = 0.10f;

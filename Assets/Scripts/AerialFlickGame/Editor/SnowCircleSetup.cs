@@ -48,11 +48,15 @@ namespace AerialFlickGame.EditorTools
             if (mat == null) { mat = new Material(sh) { name = "SnowCircleMat" }; AssetDatabase.CreateAsset(mat, MatPath); }
             mat.shader = sh;
             mat.SetTexture("_BaseMap", baseTex);
-            mat.SetColor("_BaseColor", Color.white);
+            // 柔らかい雪に寄せる: 少し寒色の白で木材のタン味を弱める＋マット＋凹凸控えめ
+            mat.SetColor("_BaseColor", new Color(0.92f, 0.95f, 1.0f));
+            mat.SetFloat("_Smoothness", 0.12f); // 低め＝マットで柔らかい
+            mat.SetFloat("_Metallic", 0f);
             if (normalTex != null)
             {
                 mat.SetTexture("_BumpMap", normalTex);
                 mat.EnableKeyword("_NORMALMAP");
+                mat.SetFloat("_BumpScale", 0.3f); // 凹凸を弱めて木目感を軽減
             }
             EditorUtility.SetDirty(mat);
 
