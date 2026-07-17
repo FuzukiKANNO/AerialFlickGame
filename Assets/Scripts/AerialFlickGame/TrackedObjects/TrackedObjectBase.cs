@@ -35,14 +35,12 @@ namespace AerialFlickGame.TrackedObjects
         public float PlaneZ = 0f;
 
         [Header("姿勢フリップ除去")]
-        [Tooltip("1フレームで大きく飛ぶ姿勢（OptiTrackの180°反転など）を弾く")]
+        [Tooltip("急な大ジャンプ姿勢（OptiTrackの反転など）を弾く。緩やかな傾きは追従する")]
         public bool RejectOrientationFlips = true;
 
-        [Tooltip("1フレームでこの角度[deg]を超えて変化したら疑わしいフリップとみなす")]
-        public float FlipAngleThreshold = 120f;
-
-        [Tooltip("疑わしい姿勢がこのフレーム数続いたら本物として受理（復帰）")]
-        public int FlipRecoverFrames = 6;
+        [Tooltip("1フレームでこの角度[deg]を超える姿勢変化は棄却し直前を保持する。" +
+                 "緩やかな傾きはこれ未満なので追従する（急な反転・横向きは想定しないので復帰しない）")]
+        public float MaxAnglePerFrame = 30f;
 
         // ---- 公開プロパティ ----
         public Vector3 Position { get; private set; }
@@ -73,10 +71,11 @@ namespace AerialFlickGame.TrackedObjects
         // 姿勢フィルタ状態
         private Quaternion _lastOrientation = Quaternion.identity;
         private bool _hasOrientation;
-        private int _flipHoldCount;
 
         /// <summary>
-        /// 姿勢の急な大ジャンプ（≈180°反転など）を弾く。疑わしい姿勢が続いたら受理して復帰。
+        /// 1フレームで大きく飛ぶ姿勢（≈180°反転・横向きなど）を棄却して直前を保持する。
+        /// 復帰はしない（急な反転・横向きは想定しないため）。緩やかな傾きは MaxAnglePerFrame 未満なので追従する。
+        /// トラッキングが切れて再取得したときは基準を取り直す。
         /// </summary>
         private Quaternion FilterOrientation(Quaternion raw, bool tracked)
         {
@@ -84,7 +83,6 @@ namespace AerialFlickGame.TrackedObjects
             {
                 _lastOrientation = raw;
                 _hasOrientation = tracked;
-                _flipHoldCount = 0;
                 return raw;
             }
 
@@ -92,24 +90,17 @@ namespace AerialFlickGame.TrackedObjects
             {
                 _lastOrientation = raw;
                 _hasOrientation = true;
-                _flipHoldCount = 0;
                 return raw;
             }
 
             float angle = Quaternion.Angle(_lastOrientation, raw);
-            if (angle > FlipAngleThreshold)
+            if (angle > MaxAnglePerFrame)
             {
-                _flipHoldCount++;
-                if (_flipHoldCount < Mathf.Max(1, FlipRecoverFrames))
-                {
-                    // 疑わしいフリップ → 直前の姿勢を保持して弾く
-                    return _lastOrientation;
-                }
-                // 一定フレーム続いた → 本物とみなして受理（復帰）
+                // 急な大ジャンプ → 採用せず直前を保持（反転が続いてもホールドし続ける）
+                return _lastOrientation;
             }
 
-            _lastOrientation = raw;
-            _flipHoldCount = 0;
+            _lastOrientation = raw; // 緩やかな変化 → 追従
             return raw;
         }
 
