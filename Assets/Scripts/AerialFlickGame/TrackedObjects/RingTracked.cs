@@ -3,10 +3,10 @@ using UnityEngine;
 namespace AerialFlickGame.TrackedObjects
 {
     /// <summary>
-    /// トラッキング重心から一定距離オフセットした位置にある「円（リング）」で弾く追跡形状。
+    /// トラッキング重心から一定距離オフセットした位置にある円で弾く追跡形状。
     /// 実物のアイテム: 重心の真下に直径12cmの円、円の端から重心まで(y)は1cm。
     /// → 円中心は重心から (端〜重心 + 半径) だけオフセット方向に離れる。
-    /// XY 平面上では円 vs 円として解析的に扱う（CylinderTracked と同じ数式、中心だけオフセット）。
+    /// XY 平面上では円 vs 円として扱う（CylinderTracked と同じ数式、中心だけオフセット）。
     /// </summary>
     public class RingTracked : TrackedObjectBase
     {
