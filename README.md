@@ -1,20 +1,20 @@
-# AerialFlickGame — 予測型当たり判定ゲーム
+# AerialFlickGame — 動的当たり判定ゲーム
 
-OptiTrack で追跡した物体（円柱 / 直方体）と、左→右へ飛来する円との**予測衝突判定**を実装した
+OptiTrack で追跡した物体（円柱 / 直方体）と、左→右へ飛来する円との予測衝突判定を実装した
 Unity プロジェクト。物理的に接触する `DetectionLeadTime` 秒前に当たり判定を発火する。
 
 - Unity バージョン: **6000.3.10f1**（`finger_from_side` と同一）
 - レンダーパイプライン: URP
-- 入力: Input System（New）— OptiTrack 未接続時は**マウス操作にフォールバック**
+- 入力: Input System（New）— OptiTrack 未接続時はマウス操作にフォールバック
 
 ## セットアップ
 
 1. Unity Hub の「開く」→ `C:\Users\fuzuk\Unity\Projects\AerialFlickGame` を追加して開く。
    - OptiTrack SDK（NatNet ネイティブ DLL 含む）は `finger_from_side` からコピー済み。
-2. 初回インポート後、メニュー **`AerialFlickGame > Build Game Scene`** を実行。
+2. 初回インポート後、メニュー `AerialFlickGame > Build Game Scene` を実行。
    - 配線済みのシーン `Assets/Scenes/AerialFlickGame.unity` が自動生成・保存される。
    - カメラ・ライト・Manager・TrackedObject・Spawner・UI・円プレハブが全て作られ、参照も接続済み。
-3. そのシーンを開いて **Play**。
+3. そのシーンを開いて Play。
 
 ## トラッキング無し（マウス）でのテスト
 
@@ -44,7 +44,7 @@ Unity プロジェクト。物理的に接触する `DetectionLeadTime` 秒前�
 
 重心から離れた位置に円がある実物アイテム用。重心の下に直径 12cm の円があり、円の端〜重心が 1cm、
 という形状を想定（円中心は重心から `EdgeToCentroid + 半径` 離れる）。円は **ZY 平面の円盤（面）**として扱い、
-**飛来円（結像面 z=PlaneZ 上の点＋半径）vs 面**で判定する（面を横から突く形）。
+飛んでくる円（結像面 z=PlaneZ 上の点＋半径）vs 面で判定する（面を横から突く形）。
 
 キャリブレ用の変数（すべて Inspector）:
 | 変数 | 既定 | 意味 |
@@ -86,18 +86,18 @@ Assets/Scripts/AerialFlickGame/
 
 ## 検出モード（PredictiveHitDetector.Mode）
 
-設計は菅野ら「空中像を手指で弾く際の当たり判定距離と接近速度に関する評価」(VRSJ2026) に基づく。
+設計は「空中像を手指で弾く際の当たり判定距離と接近速度に関する評価」(VRSJ2026) に基づく。
 論文の当たり判定距離 = `17.0 × 速度 + 2.8 [cm]`（上限）で、傾きの時間換算 170ms は
-「円が動き出してから指を止めるまでの反応時間」。上限・下限の傾き平均から **89ms** を採用。
+「円が動き出してから指を止めるまでの反応時間」。上限・下限の傾き平均から 89ms を採用。
 
 - **CompensatedContact（既定・論文モデル）**
   追跡物体（指）だけを LeadTime 分だけ先読みし、円は実位置で判定。
   有効当たり判定距離 = `円半径 + CollisionMargin + LeadTime × 指の接近速度`。
-  指が静止していれば実接触の瞬間に発火し、**円の速度では早出ししない**（論文どおり）。
+  指が静止していれば実接触の瞬間に発火し、円の速度は客家のタイミングに関係しない（論文どおり）。
 - **Predictive（非実験向け/演出用）**
   相対的な衝突時刻 T_col を予測し、その LeadTime 前に発火。
   円の速度でも早出しするため、指が静止していても手前で跳ね返る。反応時間モデルの根拠から外れる
-  （89ms を「衝突の何秒前」と読み替えており、円の速度まで早出しに入る）ので**実験には使わない**。
+  （89ms を「衝突の何秒前」と読み替えており、円の速度まで早出しに入る）ので実験には使わない。
 - **PhysicalContact**
   予測も補償もせず、実際に接触した瞬間に発火。
 
@@ -106,7 +106,7 @@ Assets/Scripts/AerialFlickGame/
 ## 奥行き(Z)・高さ(Y)の許容範囲（PredictiveHitDetector）
 
 finger_from_side の `SphereInteraction` に準拠。追跡物体が結像面から離れすぎている場合は
-発火させない「センシング範囲ゲート」。全モード共通で発火前にチェックする。
+発火させないためのセンシング範囲の設定。全モード共通で発火前にチェックする。
 Z は `transform` ではなく `TrackedObject.Position.z`（実測値）で判定する。
 
 | 変数 | 既定 | 意味 |
@@ -122,7 +122,7 @@ Z は `transform` ではなく `TrackedObject.Position.z`（実測値）で判�
   カメラ配置に依存する。本シーンのカメラは z=-1 で +Z を向くため、手前は -Z 側になりうる。
   実機で確認し、必要なら Front/Back の値を入れ替える。
 - マウス操作時は Z を制御できず `Position.z = PlaneZ` 固定なので、`ImagePlaneZ = PlaneZ` なら常に通過する。
-- 高さゲートは XY 平面判定（`ComputeDistanceTo`）に対する**追加**の制約。XY 距離自体にも Y は
+- 高さゲートは XY 平面判定（`ComputeDistanceTo`）に対する追加の制約。XY 距離自体にも Y は
   含まれるため、既定は off。純粋に水平距離だけで判定したい場合は別途相談。
 
 ## 記録機能（PositionRecorder）
@@ -134,17 +134,17 @@ finger_from_side の `RecordPosition` 相当。追跡物体の位置・速度・
 - 列: `Time, pos.x, pos.y, pos.z, vel.x, vel.y, isTracking, event`
 - 位置は `TrackedObject.Position`（実測 Z を保持）。`ReferenceObject` を設定すると相対位置。
 - `Detector` を設定すると、ヒット発火が `event` 列に記録される（`HIT lead=..ms vt=.. vrel=.. margin=..`）。
-- 記録開始/停止: Play 中に Inspector の **Start/Stop Recording** ボタン、または `RecordOnPlay` で自動開始。
+- 記録開始/停止: Play 中に Inspector の Start/Stop Recording ボタン、または `RecordOnPlay` で自動開始。
 
 補足: Motive 側のテイク録画をトリガしたい場合は、`OptitrackStreamingClient` の
 `RecordOnPlay` / `StartRecording()` / `StopRecording()`（NatNet リモートコマンド）を使う。
 
 ## ペンギン（ジャンプして投げる演出）
 
-左側の地面に置いたペンギン（Hosh「Stylized Penguin」）が、**球の高さ(targetY)までジャンプして頂点で投げ**、
+左側の地面に置いたペンギン（Hosh「Stylized Penguin」）が、球の高さ(targetY)までジャンプして頂点で投げ、
 球はそのリリース位置から発生する。着地後は元に戻る。
 
-- メニュー **`AerialFlickGame > Add Penguin Thrower (left)`** で現在のシーンに配置・配線（再生成なし）。
+- メニュー `AerialFlickGame > Add Penguin Thrower (left)` で現在のシーンに配置・配線（再生成なし）。
   ペンギンは球の流れ(±YRange)より下（地面）に置かれ、`CircleSpawner.Thrower` に自動接続される。
 - スポナーは各スポーンで targetY を決め、`PenguinThrower.JumpAndThrow(targetY, ...)` を呼ぶ。
   ペンギンが上昇 → 頂点でリリース（このとき球を発生）→ 下降。Jump アニメ（Animator トリガ `Jump`）も併用。
@@ -170,7 +170,5 @@ finger_from_side の `RecordPosition` 相当。追跡物体の位置・速度・
 | StepSize | BoxTracked | 0.002 | s |
 
 ## 注意
-
-- 衝突判定は **XY 平面（結像面）のみ**。Z 軸は使わない。
-- `FindTimeToCollision` は現在フレーム情報のみで完結する純粋関数（副作用なし）。
+- `FindTimeToCollision` は現在フレーム情報のみで完結する。
 - HIT 時は Console に `[HIT] leadTime=... | v_tracked=... | v_rel=... | margin=...` を出力。
