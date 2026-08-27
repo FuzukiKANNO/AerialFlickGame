@@ -23,11 +23,11 @@ namespace AerialFlickGame.Circle
         public float CircleRadius = 0.010f;   // [m]
         public float CircleSpeed = 0.3f;      // [m/s]
 
-        [Tooltip("反発係数 e。1=完全弾性 / 0=非弾性(指の速さで押し出す・論文相当)")]
+        [Tooltip("反発係数 e。1=完全弾性 / 0=非弾性")]
         [Range(0f, 1f)]
         public float Restitution = 1.0f;
 
-        [Tooltip("true=水平方向のみに跳ね返す(論文の1D) / false=当たり位置で角度がつく2D")]
+        [Tooltip("true=水平方向のみに跳ね返す / false=当たり位置で角度がつく2D")]
         public bool HorizontalBounceOnly = false;
 
         [Tooltip("この X を超えた円はミス扱いで消滅。既定はスポーン X の対称位置")]
