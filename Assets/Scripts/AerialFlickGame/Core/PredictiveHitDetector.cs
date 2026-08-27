@@ -6,7 +6,7 @@ using AerialFlickGame.Circle;
 namespace AerialFlickGame.Core
 {
     /// <summary>
-    /// コアロジック。飛来する円 1 つ 1 つに対し毎フレーム衝突予測を行い、
+    /// 飛来する円 1 つ 1 つに対し毎フレーム衝突予測を行い、
     /// 物理接触の detectionLeadTime 前にヒットを発火する。
     /// </summary>
     /// <summary>リード時間の指定単位。</summary>
@@ -19,9 +19,9 @@ namespace AerialFlickGame.Core
     /// <summary>検出の方式。</summary>
     public enum DetectionMode
     {
-        // 論文（菅野ら, VRSJ2026）に忠実なモデル。追跡物体（指）だけを LeadTime 分
+        // 論文（VRSJ2026）に忠実なモデル。追跡物体（指）だけを LeadTime 分
         // 先読みし、円は実位置で判定する。有効当たり判定距離 = LeadTime×指速度 + margin。
-        // 指が静止なら実接触で発火し、円の速度では早出ししない。既定。
+        // 指が静止なら実接触で発火し、円の速度は発火タイミングに関係しない。
         [InspectorName("CompensatedContact (論文モデル・推奨)")]
         CompensatedContact,
         // 相対的な衝突時刻を予測し、その LeadTime 前に発火する（円の速度でも早出しする）。
@@ -120,7 +120,7 @@ namespace AerialFlickGame.Core
         }
 
         /// <summary>
-        /// 飛来円 1 つについて衝突予測を評価する。FlyingCircle.Update から毎フレーム呼ばれる。
+        /// 飛んでくる円 1 つについて衝突予測を評価する。FlyingCircle.Update から毎フレーム呼ばれる。
         /// Flying 状態の円のみ判定する。ヒットしたら円へ通知し、イベントを発火する。
         /// </summary>
         public void EvaluateForCircle(FlyingCircle circle)
@@ -156,7 +156,7 @@ namespace AerialFlickGame.Core
         /// </summary>
         private bool PassesSensingGate(FlyingCircle circle)
         {
-            // 奥行き(Z): 基準面より手前(+Z)と奥(-Z)で別々の許容
+            // 奥行き(Z): 基準面より手前(+Z)と奥(-Z)で別々の許容範囲
             if (UseDepthGate)
             {
                 float zDiff = TrackedObject.Position.z - ImagePlaneZ;
@@ -166,7 +166,7 @@ namespace AerialFlickGame.Core
                 if (!inZ) return false;
             }
 
-            // 高さ(Y): 指と円中心の Y 差
+            // 高さ(Y): 指（ラケット）と円中心の Y 差
             if (UseHeightGate)
             {
                 float yDiff = Mathf.Abs(TrackedObject.Position.y - circle.PositionXY.y);
@@ -187,12 +187,11 @@ namespace AerialFlickGame.Core
             Vector2 vTracked = TrackedObject.Velocity;
 
             // 追跡物体を lead 分先読みするのと、円を -vTracked*lead ずらして今の距離を測るのは等価
-            // （形状距離は平行移動に対して不変）。
             Vector2 qShifted = qNow - vTracked * lead;
             float surfaceToCenter = TrackedObject.ComputeDistanceTo(qShifted);
             float contactThreshold = circle.Radius + CollisionMargin;
 
-            // Gizmo 用: 予測している指の到達位置を接触予測点として保持
+            // Gizmo 用: 予測しているラケットｍの到達位置を接触予測点として保持
             HasPrediction = surfaceToCenter <= contactThreshold;
             LastTimeToCollision = 0f;
             LastPredictedContactPoint = qNow;
@@ -244,7 +243,7 @@ namespace AerialFlickGame.Core
             }
         }
 
-        /// <summary>ヒット情報を組み立てて円と外部購読者へ通知する。</summary>
+        /// <summary>ヒット情報を組み立てて外部へ通知する。</summary>
         private void Fire(FlyingCircle circle, float t, Vector2 vCircle, Vector2 contact)
         {
             Vector2 vTracked = TrackedObject.Velocity;
@@ -262,7 +261,7 @@ namespace AerialFlickGame.Core
 
             // 円へ通知（状態遷移・スコア・ログ）。以降この円は判定されない。
             circle.OnHitDetected(pred);
-            // 外部購読者へ通知
+            // 監視者へ通知
             OnHitDetected?.Invoke(pred);
         }
     }
